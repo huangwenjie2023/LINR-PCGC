@@ -1,0 +1,9 @@
+{
+    "mu": 128.0,
+    "b": 6.0,
+    "min_param": -1.1445194482803345,
+    "max_param": 1.1281378269195557,
+    "enc_mode": 2,
+    "xlow_enc_flags": "",
+    "xlow_enc_modes": ""
+}
