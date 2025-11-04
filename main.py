@@ -405,7 +405,7 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             
             epoch_result['real_bpp_all'] = real_bpp_all
-            epoch_result['point_bpp_fake'] = point_bpp_fake
+            # epoch_result['point_bpp_fake'] = point_bpp_fake
             epoch_result['model_bpp'] = model_bpp
             epoch_result['xyzlow_bpp'] = xyzlow_bpp
             
