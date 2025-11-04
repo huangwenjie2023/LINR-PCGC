@@ -8,7 +8,7 @@ import torch
 import logging
 
 from models.model_core import LINR_PCGC_Model
-from test_utils import enc_all_frame_low_xyz, Test_one_gop
+from test_utils import enc_all_frame_low_xyz, Test_one_gop, enc_oneframe_lowx, xyzlow_tail_handle
 from model_compression.model_size_est import Model_Estimate, esti_model_size
 import numpy as np
 import time
@@ -93,17 +93,15 @@ def overfit_enc_dec(args):
     if not os.path.exists(str(args.pretrain_path)):
         args.pretrain_path = None
     
-    
+    last_model_pth = None
     Gen_Model = lambda: LINR_PCGC_Model({'scale_num':args.scale_num, 'in_channel':len(offsets_ini), 'hidden_channel_conv':args.hidden_channel_conv, 'block_layers':args.block_layers, 'outstage':8, 'instage':1}).cuda()
     if args.overfit == 'True':
         for g_idx, group_range in enumerate(all_groups):
             # group_range = range(32,63)
             if g_idx == 0:
-                last_model_pth = args.pretrain_path
-                next_model_path = overfit_one_gop(args, dataset, group_range, args.first_epoch, last_model_pth)
+                last_model_pth = overfit_one_gop(args, dataset, group_range, args.first_epoch, last_model_pth)
             else:
-                last_model_pth = next_model_path
-                next_model_path = overfit_one_gop(args, dataset, group_range, args.others_epoch, last_model_pth)
+                overfit_one_gop(args, dataset, group_range, args.others_epoch, last_model_pth)
             
     
 
@@ -129,8 +127,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
     logger.info("="*40)
     logger.info(f'process_file: {group_range[0]} {group_range[-1]}')
     
-    
-    gop_result_dir = f'{args.result_dir}/gop_{group_range[0]}_{group_range[-1]}'
+    gop_flag = f'gop_{group_range[0]}_{group_range[-1]}'
+    gop_result_dir = f'{args.result_dir}/{gop_flag}'
     if not os.path.exists(gop_result_dir):
         os.makedirs(gop_result_dir)
     
@@ -154,7 +152,72 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
 
 
     reading_data = Read_Data(dataset, group_range)
-    low_enc_ret = enc_all_frame_low_xyz(reading_data, frame_num=gop_size)
+
+    point_test_frame = 0
+    all_coord_data_min = []
+    all_xlow_info = []
+    
+    re_cal = False
+    tmp_path = args.handle_dir
+    buffer_path = os.path.join(gop_result_dir, f'{gop_flag}_buffer.json')
+    xyzlow_path = os.path.join(tmp_path, f'{gop_flag}_xyzlow.bin')
+    
+    
+    if re_cal or (not os.path.exists(buffer_path)) or (not os.path.exists(xyzlow_path)):
+        # pre_time = 0
+        # files = dataset.all_files_path[group_range[0]:group_range[-1]+1]
+        # simple_dataset = Read_Simple_Data(files, dataset.scale_num, dataset.ori_type)
+        # simple_loader = DataLoader(simple_dataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=collate_one_fn)
+        # with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            # simple_iter = iter(simple_loader)
+        # dist_sum = 0
+        for frame_idx in range(gop_size):
+            # try:
+            print(f'frame: {frame_idx} / {gop_size}')
+            # frame_data, coord_data_min = next(simple_iter)
+            frame_data = reading_data[frame_idx]
+            point_num = frame_data['point_num']
+            coord_data_min = frame_data['coord_data_min']
+            
+            point_test_frame += point_num
+            # all_input_info = frame_data['all_input_info']
+            # pst1 = time.time()
+            # futures_for_frame, dist_all = derive_refine_oneframe(fixmodel, frame_data, tmp_path, f'{gop_flag}_{frame_idx}', executor)
+            # dist_sum += dist_all
+            # pst2 = time.time()
+            # pre_time += pst2 - pst1
+            # save_sp(tmp_path, f'{gop_flag}_{frame_idx}', outfeat)
+            # all_futures.extend(futures_for_frame)
+            
+            xyz_enc_bytes = enc_oneframe_lowx(frame_data)
+            all_coord_data_min.append(coord_data_min)
+            all_xlow_info.append(xyz_enc_bytes)
+        
+        
+        
+        low_enc_ret = xyzlow_tail_handle(all_coord_data_min, all_xlow_info)
+        # 写出到tmp_path/f'{gop_flag}_xyzlow.bin'
+        with open(xyzlow_path, 'wb') as f:
+            # 已经是bytes类型, 直接写入
+            f.write(low_enc_ret)
+        xyzlow_bpp = len(low_enc_ret) / point_test_frame
+        # 写出point_test_frame
+        with open(buffer_path, 'w') as f:
+            json.dump({
+                'point_test_frame':point_test_frame,
+                # 'pre_time':pre_time,
+                # 'dist_avg':dist_avg
+            }, f)
+            
+    else:
+        with open(xyzlow_path, 'rb') as f:
+            low_enc_ret = f.read()
+        with open(buffer_path, 'r') as f:
+            buffer_info = json.load(f)
+        point_test_frame = buffer_info['point_test_frame']
+        # pre_time = buffer_info['pre_time']
+        # dist_avg = buffer_info['dist_avg']
+        xyzlow_bpp = len(low_enc_ret) / point_test_frame
     
     Gen_Model = lambda: LINR_PCGC_Model({'scale_num':scale_num, 'in_channel':len(offsets_ini), 'hidden_channel_conv':args.hidden_channel_conv, 'block_layers':args.block_layers, 'outstage':8, 'instage':1}).cuda()
     
@@ -279,8 +342,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
         epoch_result = {'epoch':epoch, 'loss':loss_mean, 'train_time':train_time, 'train_time_avg':train_time_avg}
         
         
-        if (mid_test) and (epoch < 10 or epoch%args.check_freq==0):
-        # if epoch%args.check_freq==0 and epoch >=10:
+        # if (mid_test) and (epoch < 10 or epoch%args.check_freq==0):
+        if epoch%args.check_freq==0 and epoch >=10:
             # emb_param = torch.cat([p.view(-1) for p in embed_obj.parameters()])
             # emb_byte = emb_param.detach().cpu().numpy().tobytes()
             # emb_zlib = zlib.compress(emb_byte)
@@ -303,47 +366,6 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             with torch.no_grad():
                 estd_model.eval()
-                bpp_check_final = 99999999
-                # 随机取0,frame_num-1中的check_frame个不同的数
-                assert check_frame <= gop_size
-
-                
-                
-                # 因为压缩后的model实际上改变的是model_ori的参数，所以已经被覆盖了，这里需要重新计算
-                # 这是由于含有ME的model无法deepcopy
-                compress_out_to_use = esti_compress_model(estd_model, model_ori, bitdepth_use)
-                model_to_use = compress_out_to_use['new_model']
-                modelbit_use = compress_out_to_use['bit_real']
-                enc_mode_to_use = compress_out_to_use['enc_mode']
-                
-                        
-                bits_test_frame = 0
-                point_test_frame = 0
-                xyzlow_test_frame = 0
-                for frame_idx in range(gop_size):
-                    frame_data = reading_data[frame_idx]
-            
-                    all_input_info = frame_data['all_input_info']
-                    point_num = frame_data['point_num']
-                    
-                    
-                    bits_t_tmp = overfit_one_frame(model_to_use, all_input_info)
-                
-                    # bpp_t_tmp = bits_t_tmp / point_num
-                    bits_test_frame += bits_t_tmp.item()
-                    point_test_frame += point_num
-
-                    xyzlow_test_frame += frame_data['xyzQ_low_bits']
-                
-                    torch.cuda.empty_cache()
-                point_bpp_fake = bits_test_frame / point_test_frame
-                model_bpp = modelbit_use / point_test_frame
-                
-                emb_bpp = emb_bits / point_test_frame
-                xyzlow_bpp = xyzlow_test_frame / point_test_frame
-                
-                fake_bpp_all = point_bpp_fake + model_bpp + emb_bpp + xyzlow_bpp
-                
                 torch.save(
                     {
                         'model':estd_model.state_dict(),
@@ -364,17 +386,16 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
                 dec_time = real_out['dec_time']
                 real_point_bpp = real_out['point_bpp']
                 point_bpp_val = real_out['point_bpp_val']
+                enc_mode_to_use = real_out['enc_mode_to_use']
                 assert np.abs(point_bpp_fake - point_bpp_val)<1e-5
             
             
             
             logger.info(f'real_bpp_all: {real_bpp_all}')
             logger.info(f'real_point_bpp: {real_point_bpp}')
-            logger.info(f'fake_bpp_all: {fake_bpp_all}')
             logger.info(f'point_bpp_fake: {point_bpp_fake}')
             logger.info(f'point_bpp_val: {point_bpp_val}')
             logger.info(f'model_bpp: {model_bpp}')
-            logger.info(f'emb_bpp: {emb_bpp}')
             logger.info(f'xyzlow_bpp: {xyzlow_bpp}')
             
             logger.info(f'enc_time: {enc_time}')
@@ -384,10 +405,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             
             epoch_result['real_bpp_all'] = real_bpp_all
-            epoch_result['fake_bpp_all'] = fake_bpp_all
             epoch_result['point_bpp_fake'] = point_bpp_fake
             epoch_result['model_bpp'] = model_bpp
-            epoch_result['emb_bpp'] = emb_bpp
             epoch_result['xyzlow_bpp'] = xyzlow_bpp
             
             epoch_result['enc_time'] = enc_time

@@ -232,6 +232,36 @@ def enc_all_frame_low_xyz(reading_data,frame_num):
     return low_byte
             
 
+def enc_oneframe_lowx(frame_data):
+    all_input_info = frame_data['all_input_info']
+    # coord_data_min = frame_data['coord_data_min']
+    # all_coord_data_min.append(coord_data_min)
+    xyzqsc_t = all_input_info[-1]['xyzqsc_t']
+    
+    xyzQ = xyzqsc_t.get_coord()
+    max_data = xyzQ.max().cpu().numpy()
+
+    # 表示一个数需要的bit数
+    bitdepthQ = int(np.ceil(np.log2(max_data+1)))
+    
+    # 所有数都是正数，负数默认已经处理了
+    xyzQ_enc = xyzQ.detach().cpu().numpy()
+
+    assert bitdepthQ <= 8, 'downsampled xyzQ should be less than 8 bit'
+    xyzQ_enc = xyzQ_enc.astype(np.uint8)
+
+    xyz_enc_bytes = xyzQ_enc.tobytes()
+    # all_xlow_info.append(xyz_enc_bytes)
+    return xyz_enc_bytes
+
+def xyzlow_tail_handle(all_coord_data_min, all_xlow_info):
+    all_coord_data_min = np.concatenate(all_coord_data_min, axis=0).astype(np.int32)
+    all_coord_data_min_byte = all_coord_data_min.tobytes()
+    all_xlow_info.append(all_coord_data_min_byte)
+    low_byte = pack_bitstream(all_xlow_info)
+    return low_byte
+
+
 def part_xyz_low_detail(reading_data,frame_num):
     xyz_low_result = []
     for frame_idx in range(frame_num):
