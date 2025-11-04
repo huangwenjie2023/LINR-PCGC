@@ -360,10 +360,6 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             # point_bpp_fake = None
             
             
-
-            
-
-            
             with torch.no_grad():
                 estd_model.eval()
                 torch.save(
@@ -405,7 +401,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             
             epoch_result['real_bpp_all'] = real_bpp_all
-            # epoch_result['point_bpp_fake'] = point_bpp_fake
+            epoch_result['real_point_bpp'] = real_point_bpp
+            epoch_result['point_bpp_val'] = point_bpp_val
             epoch_result['model_bpp'] = model_bpp
             epoch_result['xyzlow_bpp'] = xyzlow_bpp
             
