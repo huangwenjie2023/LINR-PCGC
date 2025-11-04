@@ -67,7 +67,12 @@ def Test_one_gop(inargs):
         with open(bin_path, 'wb') as f:
             f.write(low_enc_ret)
 
-    
+    # 'esti_compress_model': esti_compress_model,
+    # esti_compress_model = inargs['esti_compress_model']
+    # compress_out_to_use = esti_compress_model(estd_model, model_ori, bitdepth)
+    # compress_out_to_use['enc_time'] = 0
+    # compress_out_to_use['dec_time'] = 0
+    # compress_out_to_use['final_byte'] = b''
     compress_out_to_use = compress_model_test(estd_model, model_ori, bitdepth)
 
     model_to_use = compress_out_to_use['new_model']
@@ -138,8 +143,8 @@ def Test_one_gop(inargs):
     
         torch.cuda.empty_cache()
     xyzlow_test_frame = len(low_enc_ret)*8
-    bpp_t = bits_test_frame / point_test_frame
-    bpp_train = bits_train_frame / point_test_frame
+    point_bpp = bits_test_frame / point_test_frame
+    point_bpp_val = bits_train_frame / point_test_frame
     # bpp_t和bpp_train应该是差不多的
     
     model_bpp = modelbit_use / point_test_frame
@@ -147,9 +152,9 @@ def Test_one_gop(inargs):
 
     xyzlow_bpp = xyzlow_test_frame / point_test_frame
     
-    bpp_all = bpp_t + model_bpp + xyzlow_bpp
+    bpp_all = point_bpp + model_bpp + xyzlow_bpp
     
-    result = {'bpp_all': bpp_all, 'bpp_t': bpp_t, 'model_bpp': model_bpp, 'xyzlow_bpp': xyzlow_bpp, 'enc_mode': enc_mode_to_use, 'enc_time': enc_time/frame_num, 'dec_time': dec_time/frame_num}
+    result = {'bpp_all': bpp_all, 'point_bpp': point_bpp, 'point_bpp_val': point_bpp_val.item() ,'model_bpp': model_bpp, 'xyzlow_bpp': xyzlow_bpp, 'enc_mode': enc_mode_to_use, 'enc_time': enc_time/frame_num, 'dec_time': dec_time/frame_num}
     
     result_path = os.path.join(result_dir, "result.json")
     with open(result_path, 'w') as f:

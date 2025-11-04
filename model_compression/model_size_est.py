@@ -176,7 +176,7 @@ class Model_Estimate:
         enc_time = st2 - st1
         dec_time = st2 - st1
         final_byte = b'0'
-        return {'new_model': new_model, 'bpp_real': bpp_real, 'bit_real': bit_real, 'enc_mode': enc_mode, 'laplace_bpp': bits_laplace / len(quant_ret), 'zlib_bpp': bpp_zlib_bound, 'final_bytes': final_byte, 'min_param': min_param, 'max_param': max_param, 'mu': mu, 'b': b, 'enc_time': enc_time, 'dec_time': dec_time}
+        return {'new_model': new_model, 'bpp_real': bpp_real, 'bit_real': bit_real, 'enc_mode': enc_mode, 'laplace_bpp': bits_laplace / len(quant_ret), 'zlib_bpp': bpp_zlib_bound, 'final_bytes': final_byte, 'min_param': min_param, 'max_param': max_param, 'mu': mu, 'b': b, 'enc_time': enc_time, 'dec_time': dec_time, 'recon_ret': recon_ret}
     
     def codec(self, model, new_model, bitdepth: int = 8):
         params_ten = torch.cat([p.view(-1) for p in model.parameters()])
@@ -378,9 +378,9 @@ class Model_Estimate:
         st1 = time.time()
         compress_out = self.compress_model(model, bitdepth)
         st2 = time.time()
-        recon_model = self.decompress_model(new_model, compress_out)
+        recon_model, recon_ret = self.decompress_model(new_model, compress_out)
         st3 = time.time()
-        
+        assert (compress_out['recon_ret'] != recon_ret).sum() == 0
         compress_out['enc_time'] = st2 - st1
         compress_out['dec_time'] = st3 - st2
         compress_out['new_model'] = recon_model
@@ -576,6 +576,6 @@ class Model_Estimate:
             p.data.copy_(new_values)  # 将重构的参数赋值回模型
             current_index += num_elements
         
-        return new_model
+        return new_model, recon_ret
     
     
