@@ -386,7 +386,7 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
                 dec_time = real_out['dec_time']
                 real_point_bpp = real_out['point_bpp']
                 point_bpp_val = real_out['point_bpp_val']
-                enc_mode_to_use = real_out['enc_mode_to_use']
+                enc_mode_to_use = real_out['enc_mode']
                 assert np.abs(point_bpp_fake - point_bpp_val)<1e-5
             
             
