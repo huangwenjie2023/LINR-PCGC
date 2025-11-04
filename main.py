@@ -357,8 +357,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             bitdepth_final = 8
             # bpps_all_depth = []
-            point_bpp_fake = None
-            model_bpp = None
+            # point_bpp_fake = None
+            
             
 
             
@@ -387,13 +387,13 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
                 real_point_bpp = real_out['point_bpp']
                 point_bpp_val = real_out['point_bpp_val']
                 enc_mode_to_use = real_out['enc_mode']
-                
+                model_bpp = real_out['model_bpp']
             
             
             
             logger.info(f'real_bpp_all: {real_bpp_all}')
             logger.info(f'real_point_bpp: {real_point_bpp}')
-            logger.info(f'point_bpp_fake: {point_bpp_fake}')
+            # logger.info(f'point_bpp_fake: {point_bpp_fake}')
             logger.info(f'point_bpp_val: {point_bpp_val}')
             logger.info(f'model_bpp: {model_bpp}')
             logger.info(f'xyzlow_bpp: {xyzlow_bpp}')
