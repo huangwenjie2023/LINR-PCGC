@@ -279,8 +279,8 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
         epoch_result = {'epoch':epoch, 'loss':loss_mean, 'train_time':train_time, 'train_time_avg':train_time_avg}
         
         
-        # if (mid_test) and (epoch < 10 or epoch%args.check_freq==0):
-        if epoch%args.check_freq==0 and epoch >=10:
+        if (mid_test) and (epoch < 10 or epoch%args.check_freq==0):
+        # if epoch%args.check_freq==0 and epoch >=10:
             # emb_param = torch.cat([p.view(-1) for p in embed_obj.parameters()])
             # emb_byte = emb_param.detach().cpu().numpy().tobytes()
             # emb_zlib = zlib.compress(emb_byte)
