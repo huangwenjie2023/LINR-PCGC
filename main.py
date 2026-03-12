@@ -107,7 +107,7 @@ def overfit_enc_dec(args):
 
     dataset_test = MytestDataset(ori_dir, ori_type='ply')
     if args.encode == 'True':
-        enc_args = {'outputdir': args.result_dir, 'gop_names': gop_names, 'Gen_Model': Gen_Model, 'dataset': dataset_test, 'encode_dir': args.encode_dir}
+        enc_args = {'outputdir': args.result_dir, 'gop_names': gop_names, 'Gen_Model': Gen_Model, 'dataset': dataset, 'encode_dir': args.encode_dir}
         encode(enc_args)
     
     if args.decode == 'True':
@@ -119,11 +119,7 @@ def overfit_enc_dec(args):
         shutil.rmtree(handle_dir)
     
     
-    
-    
 def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
-    
-    
     logger.info("="*40)
     logger.info(f'process_file: {group_range[0]} {group_range[-1]}')
     
@@ -358,7 +354,11 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             bitdepth_final = 8
             # bpps_all_depth = []
             # point_bpp_fake = None
+            # model_bpp = None
             
+
+            
+
             
             with torch.no_grad():
                 estd_model.eval()
@@ -389,7 +389,6 @@ def overfit_one_gop(args, dataset, group_range, epoch_num, last_model_pth):
             
             logger.info(f'real_bpp_all: {real_bpp_all}')
             logger.info(f'real_point_bpp: {real_point_bpp}')
-            # logger.info(f'point_bpp_fake: {point_bpp_fake}')
             logger.info(f'point_bpp_val: {point_bpp_val}')
             logger.info(f'model_bpp: {model_bpp}')
             logger.info(f'xyzlow_bpp: {xyzlow_bpp}')
@@ -522,12 +521,12 @@ if __name__ == '__main__':
     parser.add_argument('--block_layers', type=int, default=1)
     parser.add_argument('--model_bitdepth', type=int, default=8)
 
-    parser.add_argument('--overfit', type=str, default='True')
-    parser.add_argument('--mid_test', type=str, default='True')
+    parser.add_argument('--overfit', type=str, default='False')
+    parser.add_argument('--mid_test', type=str, default='False')
     
     parser.add_argument('--encode', type=str, default='False')
     parser.add_argument('--encode_dir', type=str, default='result_enc/test_pc')
-    parser.add_argument('--decode', type=str, default='False')
+    parser.add_argument('--decode', type=str, default='True')
     parser.add_argument('--decode_dir', type=str, default='result_dec/test_pc')
     
 

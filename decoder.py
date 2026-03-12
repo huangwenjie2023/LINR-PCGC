@@ -9,6 +9,7 @@ from models.module_utils import octree_level_obj
 from datautils.custom_dataset import MytestDataset, Read_Data_with_cache, MyDataset
 from models.sort_functions import sort_by_coord_sum_c
 from datautils.custom_dataset import write_ply_o3d, write_ply_ascii
+from glob import glob
 
 # 对编码出来的结果进行解码，并验证是否是无损的
 decompress_model = Model_Estimate().decompress_model
@@ -83,7 +84,7 @@ def decode_one_gop(inargs):
     with open(model_path, 'rb') as f:
         final_bytes = f.read()
     side_info['final_bytes'] = final_bytes
-    model_esti = decompress_model(model_ori, side_info)
+    model_esti, _ = decompress_model(model_ori, side_info)
     
     scale_num = model_esti.scale_num
     
@@ -98,6 +99,20 @@ def decode_one_gop(inargs):
         frame_idx_str = str(frame_idx).zfill(4)
         
         frame_enc_bytes = []
+        
+        # 匹配出os.path.join(gop_enc_bin_dir, f"frame{frame_idx_str}_scale*.bin")中最大的数字
+        patter = os.path.join(gop_enc_bin_dir, f"frame{frame_idx_str}_scale*.bin")
+        # 获取所有的匹配文件
+        files = glob(patter)
+        # 获取最大的数字
+        max_s_idx = -1
+        for file in files:
+            s_idx = int(file.split(f"frame{frame_idx_str}_scale")[1].split('.bin')[0])
+            if s_idx > max_s_idx:
+                max_s_idx = s_idx
+        scale_num = max_s_idx + 1
+        
+        
         for s_idx in range(scale_num):
             bin_path = os.path.join(gop_enc_bin_dir, f"frame{frame_idx_str}_scale{s_idx}.bin")
             with open(bin_path, 'rb') as f:
