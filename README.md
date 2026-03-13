@@ -5,6 +5,7 @@ Existing AI-based point cloud compression methods struggle with dependence on sp
 ## News
 
 - 2025.8.30 We have posted the manuscript on arxiv (<https://arxiv.org/abs/2507.15686>).
+- 2025.10.20 LINR-PCGC has been published in the ICCV 2025. 
 
 ## Requirments
 
