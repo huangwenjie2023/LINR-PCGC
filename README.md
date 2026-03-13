@@ -17,6 +17,11 @@ Existing AI-based point cloud compression methods struggle with dependence on sp
 
 ## Usage
 
+## Dataset Sharing
+The dataset includes 8iVFB, Owlii, MVUB, which are commonly used for point cloud geometry compression. Dataset used for testing:
+https://pan.baidu.com/s/11hg4Zs7yl9F1USyDotrxcw?pwd=edp7 提取码: edp7 
+
+
 ### Testing
 
 The following example commands are provided to illustrate the general testing process.
